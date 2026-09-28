@@ -22,7 +22,7 @@ client = OpenAI(
 )
 
 messages = [
-    # {"role": "system", "content": system_prompt},
+    {"role": "system", "content": system_prompt},
     {"role": "user", "content": args.user_prompt},
 ]
 

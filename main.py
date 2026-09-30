@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import argparse
 from prompts import system_prompt
+from call_function import available_functions
+import json
 
 
 parser = argparse.ArgumentParser(description="Chatbot")
@@ -30,6 +32,7 @@ response = client.chat.completions.create(
     model="openrouter/free",
     messages=messages,
     temperature=0,
+    tools=available_functions
 )
     
 
@@ -40,7 +43,14 @@ elif args.verbose is True:
     print(f"Prompt tokens: {response.usage.prompt_tokens}")
     print(f"Response tokens: {response.usage.completion_tokens}")
 
-print(response.choices[0].message.content)
+message = response.choices[0].message
+
+if message.tool_calls:
+    for tool_call in message.tool_calls:
+        function_args = json.loads(tool_call.function.arguments or "{}")
+    print(f"Calling function: {tool_call.function.name}({function_args})")
+else:
+    print(response.choices[0].message.content)
 
 def main():
     print("Hello from llm-project!")

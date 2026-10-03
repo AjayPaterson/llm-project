@@ -5,6 +5,7 @@ import argparse
 from prompts import system_prompt
 from call_function import available_functions, call_function
 import json
+import sys
 
 
 parser = argparse.ArgumentParser(description="Chatbot")
@@ -28,32 +29,41 @@ messages = [
     {"role": "user", "content": args.user_prompt},
 ]
 
-response = client.chat.completions.create(
-    model="openrouter/free",
-    messages=messages,
-    temperature=0,
-    tools=available_functions
-)
+for _ in range(20):
+
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=messages,
+        temperature=0,
+        tools=available_functions
+    )
     
 
-if response.usage is None:
-    raise RuntimeError("No response")
-elif args.verbose is True:
-    print(f"User prompt: {args.user_prompt}") 
-    print(f"Prompt tokens: {response.usage.prompt_tokens}")
-    print(f"Response tokens: {response.usage.completion_tokens}")
+    if response.usage is None:
+        raise RuntimeError("No response")
+    elif args.verbose is True:
+        print(f"User prompt: {args.user_prompt}") 
+        print(f"Prompt tokens: {response.usage.prompt_tokens}")
+        print(f"Response tokens: {response.usage.completion_tokens}")
 
-message = response.choices[0].message
+    message = response.choices[0].message
+    
+    messages.append(message)
 
-if message.tool_calls:
-    for tool_call in message.tool_calls:
-        result_message = call_function(tool_call, args.verbose)
-        if not result_message["content"]:
-            raise RuntimeError("Content is empty")
-        if args.verbose:
-            print(f"-> {result_message['content']}")
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            result_message = call_function(tool_call, args.verbose)
+            messages.append(result_message)
+            if not result_message["content"]:
+                raise RuntimeError("Content is empty")
+            if args.verbose:
+                print(f"-> {result_message['content']}")
+    else:
+        print(response.choices[0].message.content)
+        break
 else:
-    print(response.choices[0].message.content)
+    print("Exceeded attempt limit...")
+    sys.exit(1)
     
     
 def main():
